@@ -2,6 +2,8 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: ai-engine
+  labels:
+    app: ai-engine
 spec:
   replicas: 1
   selector:
@@ -14,7 +16,8 @@ spec:
     spec:
       containers:
       - name: ai-engine
-        image: your-docker-registry/ai-engine:latest
+        image: sudharsanomprakash/ai-engine:v3.0
+        imagePullPolicy: Always
         ports:
         - containerPort: 5000
 ---
@@ -22,9 +25,13 @@ apiVersion: v1
 kind: Service
 metadata:
   name: ai-engine
+  labels:
+    app: ai-engine
 spec:
   selector:
     app: ai-engine
   ports:
-  - port: 5000
+  - name: http
+    port: 5000
     targetPort: 5000
+  type: ClusterIP

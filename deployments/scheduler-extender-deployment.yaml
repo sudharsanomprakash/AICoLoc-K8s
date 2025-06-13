@@ -13,10 +13,10 @@ spec:
         app: scheduler-extender
     spec:
       containers:
-      - name: extender
-        image: your-docker-registry/scheduler-extender:latest
-        ports:
-        - containerPort: 8080
+        - name: extender
+          image: sudharsanomprakash/scheduler-extender:v4.0
+          ports:
+            - containerPort: 8080
 ---
 apiVersion: v1
 kind: Service
@@ -26,5 +26,6 @@ spec:
   selector:
     app: scheduler-extender
   ports:
-  - port: 8080
-    targetPort: 8080
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
