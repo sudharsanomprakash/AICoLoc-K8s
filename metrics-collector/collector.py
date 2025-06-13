@@ -1,1 +1,0 @@
-# Placeholder: Scrape Prometheus metrics and expose to AI engine
