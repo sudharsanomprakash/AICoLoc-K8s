@@ -1,77 +1,104 @@
 package main
 
 import (
-    "bytes"
-    "encoding/json"
-    "log"
-    "net/http"
-    "os"
+	"bytes"
+	"encoding/json"
+	"io/ioutil"
+	"log"
+	"net/http"
+	"os"
 )
 
 type ExtenderArgs struct {
-    Pod   map[string]interface{} `json:"pod"`
-    Nodes struct {
-        Items []map[string]interface{} `json:"items"`
-    } `json:"nodes"`
+	Pod   map[string]interface{} `json:"pod"`
+	Nodes struct {
+		Items []struct {
+			Metadata struct {
+				Name string `json:"name"`
+			} `json:"metadata"`
+		} `json:"items"`
+	} `json:"nodes"`
 }
 
-type ExtenderResponse struct {
-    Nodes struct {
-        Items []map[string]interface{} `json:"items"`
-    } `json:"nodes"`
+type ExtenderFilterResult struct {
+	Nodes       struct {
+		Items []struct {
+			Metadata struct {
+				Name string `json:"name"`
+			} `json:"metadata"`
+		} `json:"items"`
+	} `json:"nodes"`
+	NodeNames   []string `json:"nodeNames,omitempty"`
+	Recommended []string `json:"recommended,omitempty"`
+	Error       string   `json:"error,omitempty"`
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
-    var args ExtenderArgs
-    if err := json.NewDecoder(r.Body).Decode(&args); err != nil {
-        http.Error(w, err.Error(), http.StatusBadRequest)
-        return
-    }
+	var args ExtenderArgs
+	if err := json.NewDecoder(r.Body).Decode(&args); err != nil {
+		log.Printf("Error decoding extender request: %v", err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 
-    nodeNames := []string{}
-    for _, node := range args.Nodes.Items {
-        name := node["metadata"].(map[string]interface{})["name"].(string)
-        nodeNames = append(nodeNames, name)
-    }
+	podName := "unknown"
+	if m, ok := args.Pod["metadata"].(map[string]interface{}); ok {
+		if n, exists := m["name"].(string); exists {
+			podName = n
+		}
+	}
+	log.Printf("Scheduling request for pod: %s", podName)
 
-    aiPayload := map[string]interface{}{
-        "pod":       args.Pod,
-        "nodeNames": nodeNames,
-    }
+	nodeNames := []string{}
+	for _, item := range args.Nodes.Items {
+		nodeNames = append(nodeNames, item.Metadata.Name)
+	}
+	log.Printf("Candidate nodes: %v", nodeNames)
 
-    payload, _ := json.Marshal(aiPayload)
-    aiURL := os.Getenv("AI_ENGINE_URL")
-    resp, err := http.Post(aiURL+"/recommend", "application/json", bytes.NewBuffer(payload))
-    if err != nil {
-        http.Error(w, err.Error(), http.StatusInternalServerError)
-        return
-    }
-    defer resp.Body.Close()
+	// Prepare AI engine payload
+	payload := map[string]interface{}{
+		"pod":       args.Pod,
+		"nodeNames": nodeNames,
+	}
+	body, _ := json.Marshal(payload)
 
-    var result struct {
-        Recommended []string `json:"recommended"`
-    }
-    if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-        http.Error(w, err.Error(), http.StatusInternalServerError)
-        return
-    }
+	resp, err := http.Post("http://aicoloc-ai-engine.default.svc.cluster.local:5000/recommend", "application/json", bytes.NewBuffer(body))
+	if err != nil {
+		log.Printf("Error calling AI engine: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer resp.Body.Close()
 
-    filtered := []map[string]interface{}{}
-    for _, n := range args.Nodes.Items {
-        name := n["metadata"].(map[string]interface{})["name"].(string)
-        for _, r := range result.Recommended {
-            if name == r {
-                filtered = append(filtered, n)
-            }
-        }
-    }
+	respBody, _ := ioutil.ReadAll(resp.Body)
+	var result ExtenderFilterResult
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		log.Printf("Error decoding AI engine response: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	log.Printf("AI engine recommended nodes: %v", result.Recommended)
 
-    response := ExtenderResponse{}
-    response.Nodes.Items = filtered
-    json.NewEncoder(w).Encode(response)
+	// Build filtered node list for scheduler
+	filtered := ExtenderFilterResult{}
+	for _, name := range result.Recommended {
+		for _, item := range args.Nodes.Items {
+			if item.Metadata.Name == name {
+				filtered.Nodes.Items = append(filtered.Nodes.Items, item)
+			}
+		}
+	}
+
+	json.NewEncoder(w).Encode(filtered)
 }
 
 func main() {
-    http.HandleFunc("/filter", handler)
-    log.Fatal(http.ListenAndServe(":8080", nil))
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+	log.Printf("🚀 AICoLoc Scheduler Extender running on port %s", port)
+	http.HandleFunc("/filter", handler)
+	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
+

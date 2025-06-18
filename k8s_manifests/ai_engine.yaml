@@ -27,6 +27,6 @@ spec:
     spec:
       containers:
         - name: ai-engine
-          image: your-dockerhub-user/aicoloc-ai-engine:latest
+          image: sudharsanomprakash/ai-engine:v15
           ports:
             - containerPort: 5000

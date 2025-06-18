@@ -27,7 +27,7 @@ spec:
     spec:
       containers:
         - name: extender
-          image: your-dockerhub-user/aicoloc-extender:latest
+          image: sudharsanomprakash/scheduler-extender:v6.0
           env:
             - name: AI_ENGINE_URL
               value: "http://aicoloc-ai-engine:5000"
