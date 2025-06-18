@@ -13,3 +13,8 @@ class SimpleModel(nn.Module):
 
     def forward(self, x):
         return self.fc(x)
+if __name__ == "__main__":
+    import torch
+    model = SimpleModel()
+    torch.save(model.state_dict(), "model.pth")
+    print("Model saved as model.pth")
