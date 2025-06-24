@@ -42,9 +42,10 @@ kubectl apply -f scheduler_extender.yaml
 Make sure your scheduler configuration includes the extender in the --config file:
 ```
 extenders:
-  - urlPrefix: "http://aicoloc-extender.default.svc.cluster.local:8080"
+  - urlPrefix: "http://aicoloc-extender.default.svc.cluster.local:80"
     filterVerb: "filter"
-    enableHTTPS: false
+    httpTimeout: 5s
+    nodeCacheCapable: false
  ```   
 5. Metrics Configuration
 Ensure Prometheus is running and scraping node metrics:
