@@ -11,3 +11,5 @@ AICoLoc-K8s is an AI-driven scheduler extender for Kubernetes that improves pod 
 - Improves latency, CPU utilization, and node packing efficiency.
 
 # Architecture
+
+<img width="1089" alt="Image" src="https://github.com/user-attachments/assets/8c3e8c13-bdfb-4be1-84c3-38cb0fe46700" />
