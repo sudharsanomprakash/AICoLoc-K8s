@@ -26,14 +26,17 @@ Model Deployment: Flask-based AI microservice (aicoloc-ai-engine)
 # Getting Started
 
 1. Clone the Repository
-#git clone https://github.com/your-org/AICoLoc-K8s.git
-#cd AICoLoc-K8s/k8s_manifests
+
+git clone https://github.com/your-org/AICoLoc-K8s.git
+cd AICoLoc-K8s/k8s_manifests
 
 2. Deploy the AI Engine
-#kubectl apply -f ai_engine.yaml
+
+kubectl apply -f ai_engine.yaml
 
 3. Deploy Scheduler Extender
-#kubectl apply -f scheduler_extender.yaml
+
+kubectl apply -f scheduler_extender.yaml
 
 4. Configure Kubernetes to Use Extender
 Make sure your scheduler configuration includes the extender in the --config file:
@@ -46,8 +49,8 @@ extenders:
 5. Metrics Configuration
 Ensure Prometheus is running and scraping node metrics:
 
-#kubectl get svc -n monitoring
-#kubectl port-forward svc/prometheus-operated 9090:9090 -n monitoring
+kubectl get svc -n monitoring
+kubectl port-forward svc/prometheus-operated 9090:9090 -n monitoring
 
 You can query metrics like:
 - node_cpu_seconds_total
